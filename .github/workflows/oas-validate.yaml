@@ -1,0 +1,35 @@
+# Standardized CI for the krateo-hyperdx-provider spec repo. This repo ships ONLY the
+# OpenAPI spec (openapi/hyperdx.yaml) that the krateo-hyperdx-provider chart pins by tag
+# and feeds to the oasgen-provider (RestDefinition.spec.oasPath). A pinned spec must be
+# provably valid OpenAPI, so this gates every PR/push/tag on a redocly lint.
+name: oas-validate
+
+on:
+  pull_request:
+    paths:
+      - "openapi/**"
+      - ".github/workflows/oas-validate.yaml"
+  push:
+    branches: [main]
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  lint-spec:
+    name: Lint OpenAPI spec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate OpenAPI spec (redocly lint)
+        # Fails the job on spec ERRORS (invalid OpenAPI); style warnings are non-fatal.
+        run: npx --yes @redocly/cli@latest lint openapi/hyperdx.yaml
